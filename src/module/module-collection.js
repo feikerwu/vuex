@@ -7,12 +7,14 @@ export default class ModuleCollection {
     this.register([], rawRootModule, false)
   }
 
+  // 从this._root树根，以path为路径找到某个具体的模块
   get (path) {
     return path.reduce((module, key) => {
       return module.getChild(key)
     }, this.root)
   }
 
+  // 返回一个以 ／ 分割的命名空间
   getNamespace (path) {
     let module = this.root
     return path.reduce((namespace, key) => {
@@ -26,6 +28,7 @@ export default class ModuleCollection {
   }
 
   register (path, rawModule, runtime = true) {
+    // 在开发环境下对不期望出现的store结果做一些断言输出
     if (process.env.NODE_ENV !== 'production') {
       assertRawModule(path, rawModule)
     }
@@ -35,6 +38,7 @@ export default class ModuleCollection {
       this.root = newModule
     } else {
       const parent = this.get(path.slice(0, -1))
+      //通过 new Module() 的_children可以遍历整个modules树
       parent.addChild(path[path.length - 1], newModule)
     }
 
@@ -84,6 +88,7 @@ function update (path, targetModule, newModule) {
   }
 }
 
+// 做断言
 const functionAssert = {
   assert: value => typeof value === 'function',
   expected: 'function'

@@ -14,6 +14,8 @@ export class Store {
       install(window.Vue)
     }
 
+
+    // Vue.use(Vuex) 之后 Vue = true
     if (process.env.NODE_ENV !== 'production') {
       assert(Vue, `must call Vue.use(Vuex) before creating a store instance.`)
       assert(typeof Promise !== 'undefined', `vuex requires a Promise polyfill in this browser.`)
@@ -31,14 +33,19 @@ export class Store {
     this._actionSubscribers = []
     this._mutations = Object.create(null)
     this._wrappedGetters = Object.create(null)
+    // 生成一个模板树
     this._modules = new ModuleCollection(options)
     this._modulesNamespaceMap = Object.create(null)
     this._subscribers = []
+    /**
+     * @todo 生成一个Vue实例
+     */
     this._watcherVM = new Vue()
 
     // bind commit and dispatch to self
     const store = this
     const { dispatch, commit } = this
+
     this.dispatch = function boundDispatch (type, payload) {
       return dispatch.call(store, type, payload)
     }
@@ -46,7 +53,7 @@ export class Store {
       return commit.call(store, type, payload, options)
     }
 
-    // strict mode
+    // strict mode strict模式尽量在开发模式下使用 严格模式表示只能使用mutation才能修改state的信息
     this.strict = strict
 
     const state = this._modules.root.state
@@ -54,10 +61,12 @@ export class Store {
     // init root module.
     // this also recursively registers all sub-modules
     // and collects all module getters inside this._wrappedGetters
+    // 挂载模块，注册所有的mutations以及actions，并绑定actions以及mutations的上下文state
     installModule(this, state, [], this._modules.root)
 
     // initialize the store vm, which is responsible for the reactivity
     // (also registers _wrappedGetters as computed properties)
+    // 通过Vue订阅？
     resetStoreVM(this, state)
 
     // apply plugins
@@ -191,6 +200,9 @@ export class Store {
     resetStore(this, true)
   }
 
+  /**
+   * @todo 严格模式时 用_withCommit可以越过只能用mutation修改的state的限制
+   */
   _withCommit (fn) {
     const committing = this._committing
     this._committing = true
@@ -230,6 +242,7 @@ function resetStoreVM (store, state, hot) {
   store.getters = {}
   const wrappedGetters = store._wrappedGetters
   const computed = {}
+  // 这里vuex的getters数据绑定是通过vue的computed实现的
   forEachValue(wrappedGetters, (fn, key) => {
     // use computed to leverage its lazy-caching mechanism
     computed[key] = () => fn(store)
@@ -283,10 +296,12 @@ function installModule (store, rootState, path, module, hot) {
     const parentState = getNestedState(rootState, path.slice(0, -1))
     const moduleName = path[path.length - 1]
     store._withCommit(() => {
+      // 给父模块的state挂上子模块的state，同时使用Vue.set响应式触发
       Vue.set(parentState, moduleName, module.state)
     })
   }
 
+  // 构建模块的本地上下文
   const local = module.context = makeLocalContext(store, namespace, path)
 
   module.forEachMutation((mutation, key) => {
@@ -305,6 +320,7 @@ function installModule (store, rootState, path, module, hot) {
     registerGetter(store, namespacedType, getter, local)
   })
 
+  // 递归组册模块
   module.forEachChild((child, key) => {
     installModule(store, rootState, path.concat(key), child, hot)
   })
@@ -367,6 +383,7 @@ function makeLocalContext (store, namespace, path) {
   return local
 }
 
+// 从根的getters获取相应的type
 function makeLocalGetters (store, namespace) {
   const gettersProxy = {}
 
@@ -391,7 +408,9 @@ function makeLocalGetters (store, namespace) {
 }
 
 function registerMutation (store, type, handler, local) {
+  // 是否已注册的处理
   const entry = store._mutations[type] || (store._mutations[type] = [])
+  // 每个mutation可能会触发多个handler
   entry.push(function wrappedMutationHandler (payload) {
     handler.call(store, local.state, payload)
   })
@@ -439,6 +458,7 @@ function registerGetter (store, type, rawGetter, local) {
   }
 }
 
+// 开发环境下如果state变更不是通过mutation触发的时候，告警(通过_committing触发)
 function enableStrictMode (store) {
   store._vm.$watch(function () { return this._data.$$state }, () => {
     if (process.env.NODE_ENV !== 'production') {
@@ -447,12 +467,17 @@ function enableStrictMode (store) {
   }, { deep: true, sync: true })
 }
 
+/**
+ * 获取嵌套的state
+ * ISSUE: 是否会出现state的原来名字和module的key冲突的情况
+ */
 function getNestedState (state, path) {
   return path.length
     ? path.reduce((state, key) => state[key], state)
     : state
 }
 
+// 将对象类型commit转化为标准的 { type, payload, options }
 function unifyObjectStyle (type, payload, options) {
   if (isObject(type) && type.type) {
     options = payload
@@ -476,6 +501,7 @@ export function install (_Vue) {
     }
     return
   }
+  // 将本地的vue变量指向传入的Vue库
   Vue = _Vue
   applyMixin(Vue)
 }

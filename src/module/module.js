@@ -1,6 +1,14 @@
 import { forEachValue } from '../util'
 
 // Base data struct for store's module, package with some attribute and method
+/**
+ *  生成一个 {
+ *      runtime,
+ *      _children: [],
+ *      _rawModule: {},
+ *      state: {}
+ * }
+ */
 export default class Module {
   constructor (rawModule, runtime) {
     this.runtime = runtime
@@ -15,7 +23,7 @@ export default class Module {
   }
 
   get namespaced () {
-    return !!this._rawModule.namespaced
+    return !!this._rawModule.namespaced // 转换为Boolean
   }
 
   addChild (key, module) {
@@ -29,7 +37,9 @@ export default class Module {
   getChild (key) {
     return this._children[key]
   }
-
+  /**
+   * @todo: state没有更新？
+   */
   update (rawModule) {
     this._rawModule.namespaced = rawModule.namespaced
     if (rawModule.actions) {
@@ -42,6 +52,8 @@ export default class Module {
       this._rawModule.getters = rawModule.getters
     }
   }
+
+  // 对模块的actions,mutations, state, getters 做一些操作
 
   forEachChild (fn) {
     forEachValue(this._children, fn)

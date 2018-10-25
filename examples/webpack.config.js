@@ -22,7 +22,7 @@ module.exports = {
     chunkFilename: '[id].chunk.js',
     publicPath: '/__build__/'
   },
-
+  devtool: 'inline-source-map',
   module: {
     rules: [
       { test: /\.js$/, exclude: /node_modules/, use: ['babel-loader'] },
@@ -36,6 +36,7 @@ module.exports = {
       vuex: path.resolve(__dirname, '../src/index.esm.js')
     }
   },
+
 
   optimization: {
     splitChunks: {
